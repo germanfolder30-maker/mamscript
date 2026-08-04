@@ -35,7 +35,7 @@ local BG_GITHUB_USER    = "germanfolder30-maker"
 local BG_GITHUB_REPO    = "mamscript"
 local BG_GITHUB_BRANCH  = "main"
 local BG_FRAME_COUNT    = 17
-local BG_FRAME_DELAY    = 1 / 17                   -- seconds per frame (17 fps — matches 17 uploaded frames)
+local BG_FRAME_DELAY    = 1 / 5                   -- seconds per frame (17 fps — matches 17 uploaded frames)
 local BG_FOLDER         = "bg_frames"              -- local cache folder
 local BG_PANEL_ALPHA    = 0.25                     -- 0 = opaque, 1 = fully see-through
 
