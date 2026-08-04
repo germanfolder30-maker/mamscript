@@ -35,7 +35,7 @@ local BG_GITHUB_USER    = "germanfolder30-maker"
 local BG_GITHUB_REPO    = "mamscript"
 local BG_GITHUB_BRANCH  = "main"
 local BG_FRAME_COUNT    = 17
-local BG_FRAME_DELAY    = 1 / 12                   -- seconds per frame (~12 fps feel)
+local BG_FRAME_DELAY    = 1 / 17                   -- seconds per frame (17 fps — matches 17 uploaded frames)
 local BG_FOLDER         = "bg_frames"              -- local cache folder
 local BG_PANEL_ALPHA    = 0.25                     -- 0 = opaque, 1 = fully see-through
 
@@ -275,18 +275,37 @@ function Library.new(title, username)
     -- The menu is built and shown immediately; frames attach live as
     -- they finish downloading/caching, so opening the menu never
     -- waits on the network.
+    --
+    -- Two alternating ImageLabels (A/B) are used instead of one: the
+    -- hidden label loads the next frame's Image off-screen first, and
+    -- only becomes Visible once that texture is ready, then the old
+    -- one hides. Swapping a single label's Image directly causes a
+    -- brief blank/flash while Roblox decodes the new texture — this
+    -- avoids that flicker entirely.
     self.BgFrames = {}
-    self.BgImage = new("ImageLabel", {
-        Name = "BackgroundSlideshow",
+    self.BgImageA = new("ImageLabel", {
+        Name = "BackgroundSlideshowA",
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         ScaleType = Enum.ScaleType.Crop,
         Image = "",
         ZIndex = 0,
+        Visible = true,
+        Parent = self.Root,
+    })
+    self.BgImageB = new("ImageLabel", {
+        Name = "BackgroundSlideshowB",
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        ScaleType = Enum.ScaleType.Crop,
+        Image = "",
+        ZIndex = 0,
+        Visible = false,
         Parent = self.Root,
     })
 
     local bgIndex = 0
+    local bgActiveIsA = true
     local bgCycleStarted = false
     local function startBgCycle()
         if bgCycleStarted then return end
@@ -295,7 +314,16 @@ function Library.new(title, username)
             while self.ScreenGui and self.ScreenGui.Parent do
                 if #self.BgFrames > 0 then
                     bgIndex = bgIndex % #self.BgFrames + 1
-                    self.BgImage.Image = self.BgFrames[bgIndex]
+                    local nextImage = self.BgFrames[bgIndex]
+                    local hidden  = bgActiveIsA and self.BgImageB or self.BgImageA
+                    local visible = bgActiveIsA and self.BgImageA or self.BgImageB
+
+                    hidden.Image = nextImage
+                    task.wait() -- give the engine one frame to decode it off-screen
+
+                    hidden.Visible = true
+                    visible.Visible = false
+                    bgActiveIsA = not bgActiveIsA
                 end
                 task.wait(BG_FRAME_DELAY)
             end
@@ -305,7 +333,7 @@ function Library.new(title, username)
     loadBackgroundFramesAsync(function(assetId)
         table.insert(self.BgFrames, assetId)
         if #self.BgFrames == 1 then
-            self.BgImage.Image = assetId -- show the very first frame instantly
+            self.BgImageA.Image = assetId -- show the very first frame instantly
             startBgCycle()
         end
     end)
